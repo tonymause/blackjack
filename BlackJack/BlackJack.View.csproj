@@ -99,5 +99,11 @@
       <Name>BlackJack.ViewModel</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Club.png" />
+    <Resource Include="Images\Diamond.png" />
+    <Resource Include="Images\Heart.png" />
+    <Resource Include="Images\Spade.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

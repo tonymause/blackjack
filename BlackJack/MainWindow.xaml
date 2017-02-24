@@ -4,17 +4,75 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BlackJack"
-        xmlns:viewmodel="clr-namespace:BlackJack.ViewModel;assembly=BlackJack.ViewModel"
+        xmlns:cv="clr-namespace:BlackJack.ViewModel.Converter;assembly=BlackJack.ViewModel"
         mc:Ignorable="d"
         Title="MainWindow" Height="500" Width="700">
     <Grid>
-        <StackPanel Height="400">
-            <Label Foreground="Blue" Margin="5,5,5,0">Text To Convert</Label>
-            <TextBox Text="{Binding SomeText, UpdateSourceTrigger=PropertyChanged}" Margin="5"/>
-            <TextBox Text="{Binding Model.Title}" Margin="5"/>
-            <Label Foreground="Blue" Margin="5,5,5,0">History</Label>
-            <ListBox ItemsSource="{Binding History}" Height="200" Margin="5"/>
-            <Button Command="{Binding ConvertTextCommand}" Margin="5">Convert</Button>
+        <Grid.Resources>
+            <ResourceDictionary>
+                <cv:InverseBoolConverter x:Key="InverseBoolConverter" />
+                <cv:NumberToSuitDisplayConverter x:Key="NumberToSuitDisplayConverter" />
+                <cv:SuitToImageConverter x:Key="SuitToImageConverter" />
+                <cv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+                
+                <DataTemplate x:Key="ListBoxDataTemplate">
+                    <StackPanel Width="50" Height="80">
+                        <TextBlock HorizontalAlignment="Left"
+                                Text="{Binding Number, Converter={StaticResource NumberToSuitDisplayConverter}}" />
+                        <Image HorizontalAlignment="Center"
+                                Source="{Binding Type, Converter={StaticResource SuitToImageConverter}}" />
+                        <TextBlock Text="{Binding Number}" HorizontalAlignment="Right">
+                            <TextBlock.LayoutTransform>
+                                <RotateTransform Angle="180" />
+                            </TextBlock.LayoutTransform>
+                        </TextBlock>
+                    </StackPanel>
+                </DataTemplate>
+                <ItemsPanelTemplate x:Key="ListBoxItemsPanelTemplate">
+                    <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ResourceDictionary>
+        </Grid.Resources>
+        <StackPanel>
+            <DockPanel HorizontalAlignment="Right">
+                <Label>Score:</Label>
+                <TextBox Width="100" Text="{Binding Score}" />
+            </DockPanel>
+            <DockPanel HorizontalAlignment="Center">
+                <Label>Deck:</Label>
+                <Label Content="{Binding DockerCount}" />
+            </DockPanel>
+
+            <!--Dealer Area-->
+            <Label Foreground="Blue" Margin="5,5,5,0">Dealer</Label>
+            <DockPanel>
+                <ListBox HorizontalAlignment="Left"
+                    ItemsSource="{Binding CardsDealer}" ItemTemplate="{StaticResource ListBoxDataTemplate}" ItemsPanel="{StaticResource ListBoxItemsPanelTemplate}" />
+                <Label HorizontalAlignment="Right"
+                       Content="{Binding Total_Dealer}" Visibility="Visible" />
+            </DockPanel>
+
+            <!--Player Area-->
+            <Label Foreground="Blue" Margin="5,5,5,0">Player</Label>
+            <DockPanel>
+                <ListBox HorizontalAlignment="Left"
+                    ItemsSource="{Binding CardsPlayer}" ItemTemplate="{StaticResource ListBoxDataTemplate}" ItemsPanel="{StaticResource ListBoxItemsPanelTemplate}" />
+                <Label HorizontalAlignment="Right"
+                    Content="{Binding Total_Player}" Visibility="{Binding Started, Converter={StaticResource BoolToVisibilityConverter}}" />
+            </DockPanel>
+
+            <Button Command="{Binding StartCommand}" Width="200"
+                    IsEnabled="{Binding Started, Converter={StaticResource InverseBoolConverter}}">
+                Start
+            </Button>
+            <DockPanel HorizontalAlignment="Right">
+                <Button Command="{Binding HitCommand}" Width="100" IsEnabled="{Binding Started}">Hit</Button>
+                <Button Command="{Binding StayCommand}" Width="100" IsEnabled="{Binding Started}">Stay</Button>
+            </DockPanel>
+            <Button Command="{Binding ResetCommand}" Margin="5">Reset</Button>
         </StackPanel>
     </Grid>
 </Window>
+
+
+

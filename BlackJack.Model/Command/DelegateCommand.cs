@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Windows.Input;
 
-namespace BlackJack.Model
+namespace BlackJack.Model.Command
 {
-    public class DelegateCommand: ICommand
+    public class DelegateCommand : ICommand
     {
         private readonly Action _action;
 
@@ -11,6 +11,7 @@ namespace BlackJack.Model
         {
             _action = action;
         }
+
         public bool CanExecute(object parameter)
         {
             return true;

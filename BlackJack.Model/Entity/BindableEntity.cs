@@ -7,7 +7,7 @@ using BlackJack.Model.Annotations;
 
 #endregion
 
-namespace BlackJack.Model
+namespace BlackJack.Model.Entity
 {
     [Serializable]
     public abstract class BindableEntity : INotifyPropertyChanged,IDisposable
