@@ -46,7 +46,9 @@
   <ItemGroup>
     <Compile Include="BlackJackViewModel.cs" />
     <Compile Include="Converter\BoolToVisibilityConverter.cs" />
+    <Compile Include="Converter\CardVisibilityConverter.cs" />
     <Compile Include="Converter\InverseBoolConverter.cs" />
+    <Compile Include="Converter\MultipleConverter.cs" />
     <Compile Include="Converter\NumberToSuitDisplayConverter.cs" />
     <Compile Include="Converter\SuitToImageConverter.cs" />
     <Compile Include="Extension.cs" />

@@ -12,6 +12,8 @@ namespace BlackJack.ViewModel
 {
     public class BlackJackViewModel : ViewModelBase
     {
+        #region Private Field
+
         private const int CNT_FIRST_DIS = 2;
         private const int TWENTY_ONE = 21;
         private const int TEN = 10;
@@ -23,8 +25,10 @@ namespace BlackJack.ViewModel
         private const int SUIT_COUNT_MIN = 15;
 
         private BlackJackModel _model;
+        private readonly Random _random = new Random();
 
         private int _score;
+        private string _result;
         private int _dockerCount;
         private bool _started;
 
@@ -33,8 +37,10 @@ namespace BlackJack.ViewModel
 
         private ObservableCollection<CardEntity> _cardsOnDeck;
 
-        private ObservableCollection<CardEntity> _cardsPlayer;
-        private ObservableCollection<CardEntity> _cardsDealer;
+        private ObservableCollection<BlackJackModel> _cardsPlayer;
+        private ObservableCollection<BlackJackModel> _cardsDealer;
+
+        #endregion
 
         #region Ctor
 
@@ -43,9 +49,9 @@ namespace BlackJack.ViewModel
             // Initial whole Cards
             CardsOnDeck = new ObservableCollection<CardEntity>();
             CardsOnDeck.CollectionChanged += CardsOnDeck_CollectionChanged;
-            CardsDealer = new ObservableCollection<CardEntity>();
+            CardsDealer = new ObservableCollection<BlackJackModel>();
             CardsDealer.CollectionChanged += CardsDealer_CollectionChanged;
-            CardsPlayer = new ObservableCollection<CardEntity>();
+            CardsPlayer = new ObservableCollection<BlackJackModel>();
             CardsPlayer.CollectionChanged += CardsPlayer_CollectionChanged;
 
             Init();
@@ -67,7 +73,6 @@ namespace BlackJack.ViewModel
         }
 
         #endregion
-
 
         #region Property
 
@@ -101,6 +106,16 @@ namespace BlackJack.ViewModel
             set
             {
                 _total_dealer = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string Result
+        {
+            get { return _result; }
+            set
+            {
+                _result = value;
                 OnPropertyChanged();
             }
         }
@@ -151,7 +166,7 @@ namespace BlackJack.ViewModel
         /// Cards held by Dealer
         /// </summary>
         // ReSharper disable once MemberCanBePrivate.Global
-        public ObservableCollection<CardEntity> CardsDealer
+        public ObservableCollection<BlackJackModel> CardsDealer
         {
             get { return _cardsDealer; }
             set
@@ -165,7 +180,7 @@ namespace BlackJack.ViewModel
         /// Cards held by Player
         /// </summary>
         // ReSharper disable once MemberCanBePrivate.Global
-        public ObservableCollection<CardEntity> CardsPlayer
+        public ObservableCollection<BlackJackModel> CardsPlayer
         {
             get { return _cardsPlayer; }
             set
@@ -211,7 +226,7 @@ namespace BlackJack.ViewModel
         /// </summary>
         private void Hit()
         {
-            Dispatch(CardsPlayer);
+            Dispatch(CardsPlayer, UserType.Player);
 
             // Calculate total
             Total_Player = CalculateCardsTotalValue(CardsPlayer);
@@ -229,47 +244,57 @@ namespace BlackJack.ViewModel
         /// </summary>
         private void Stay()
         {
-            while (CalculateCardsTotalValue(CardsDealer) <= DEALER_TOTAL_MAX)
-                Dispatch(CardsDealer);
-
-            Total_Dealer = CalculateCardsTotalValue(CardsDealer);
-
-            if(Total_Dealer > TWENTY_ONE)
+            if (Total_Player == TWENTY_ONE)
             {
-                // Dealer lost for this match
-                HandleWinProcess();
+                HandleWinProcess(SCORE_15);
             }
             else
             {
-                // Compare with Player
-                if(Total_Dealer > Total_Player)
+                while (CalculateCardsTotalValue(CardsDealer) <= DEALER_TOTAL_MAX)
+                    Dispatch(CardsDealer, UserType.Dealer);
+
+                Total_Dealer = CalculateCardsTotalValue(CardsDealer);
+
+                if (Total_Dealer > TWENTY_ONE)
                 {
-                    HandleLoseProcess();  
-                }
-                else if(Total_Dealer < Total_Player)
-                {
-                    HandleWinProcess();
+                    // Dealer lost for this match
+                    HandleWinProcess(SCORE_10);
                 }
                 else
                 {
-                    HandleDualProcess();
+                    // Compare with Player
+                    if (Total_Dealer > Total_Player)
+                    {
+                        HandleLoseProcess();
+                    }
+                    else if (Total_Dealer < Total_Player)
+                    {
+                        HandleWinProcess(SCORE_10);
+                    }
+                    else
+                    {
+                        HandleDualProcess();
+                    }
                 }
             }
+
             PrepareNewMatch();
         }
 
         private void HandleDualProcess()
         {
-            
+            Result = "Dual";
         }
 
-        private void HandleWinProcess()
+        private void HandleWinProcess(int score)
         {
-            Score += SCORE_10;
+            Result = "Win";
+            Score += score;
         }
 
         private void HandleLoseProcess()
         {
+            Result = "Lose";
             Score -= SCORE_10;
         }
 
@@ -288,15 +313,15 @@ namespace BlackJack.ViewModel
         /// </summary>
         /// <param name="cardsList"></param>
         /// <returns></returns>
-        private int CalculateCardsTotalValue(IEnumerable<CardEntity> cardsList)
+        private int CalculateCardsTotalValue(IEnumerable<BlackJackModel> cardsList)
         {
             var total = 0;
             foreach (var card in cardsList)
             {
-                if (card.Number > TEN)
+                if (card.Card.Number > TEN)
                     total += TEN;
                 else
-                    total += card.Number;
+                    total += card.Card.Number;
             }
 
             return total;
@@ -308,6 +333,7 @@ namespace BlackJack.ViewModel
         private void Start()
         {
             Started = true;
+            Result = string.Empty;
 
             Total_Dealer = 0;
             Total_Player = 0;
@@ -318,19 +344,18 @@ namespace BlackJack.ViewModel
             // For dealer, the first card should be hidden
             for (var i = 0; i < CNT_FIRST_DIS; i++)
             {
-                Dispatch(CardsDealer);
-                Dispatch(CardsPlayer);
+                Dispatch(CardsDealer, UserType.Dealer);
+                Dispatch(CardsPlayer, UserType.Player);
             }
         }
 
-        private void Dispatch(ICollection<CardEntity> list)
+        private void Dispatch(ICollection<BlackJackModel> list, UserType userType)
         {
-            var random = new Random();
-            var i = random.Next(0, CardsOnDeck.Count);
+            var i = _random.Next(0, CardsOnDeck.Count);
             var card = CardsOnDeck[i];
 
             CardsOnDeck.Remove(card);
-            list.Add(card);
+            list.Add(new BlackJackModel(list.Count, card, userType));
         }
 
         private void Init()
@@ -340,8 +365,8 @@ namespace BlackJack.ViewModel
 
             // Game status reset
             Started = false;
-
-            Model = new BlackJackModel();
+            Result = string.Empty;
+            
             CardsDealer.Clear();
             CardsPlayer.Clear();
 

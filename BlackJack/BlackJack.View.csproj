@@ -94,6 +94,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\BlackJack.Model\BlackJack.Model.csproj">
+      <Project>{0ff8e890-f9f2-44a8-a89f-ada981e4fdb9}</Project>
+      <Name>BlackJack.Model</Name>
+    </ProjectReference>
     <ProjectReference Include="..\BlackJack.ViewModel\BlackJack.ViewModel.csproj">
       <Project>{0D4D48B8-2E7D-42B8-A967-E5BCD1A378A7}</Project>
       <Name>BlackJack.ViewModel</Name>

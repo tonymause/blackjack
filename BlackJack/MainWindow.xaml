@@ -4,9 +4,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BlackJack"
+        xmlns:model="clr-namespace:BlackJack.Model;assembly=BlackJack.Model"
         xmlns:cv="clr-namespace:BlackJack.ViewModel.Converter;assembly=BlackJack.ViewModel"
+        xmlns:enum="clr-namespace:BlackJack.Model.Enum;assembly=BlackJack.Model"
         mc:Ignorable="d"
-        Title="MainWindow" Height="500" Width="700">
+        Title="MainWindow">
     <Grid>
         <Grid.Resources>
             <ResourceDictionary>
@@ -14,29 +16,55 @@
                 <cv:NumberToSuitDisplayConverter x:Key="NumberToSuitDisplayConverter" />
                 <cv:SuitToImageConverter x:Key="SuitToImageConverter" />
                 <cv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
-                
-                <DataTemplate x:Key="ListBoxDataTemplate">
-                    <StackPanel Width="50" Height="80">
-                        <TextBlock HorizontalAlignment="Left"
-                                Text="{Binding Number, Converter={StaticResource NumberToSuitDisplayConverter}}" />
-                        <Image HorizontalAlignment="Center"
-                                Source="{Binding Type, Converter={StaticResource SuitToImageConverter}}" />
-                        <TextBlock Text="{Binding Number}" HorizontalAlignment="Right">
-                            <TextBlock.LayoutTransform>
-                                <RotateTransform Angle="180" />
-                            </TextBlock.LayoutTransform>
-                        </TextBlock>
-                    </StackPanel>
+
+                <DataTemplate x:Key="ListBoxDataTemplate" DataType="model:BlackJackModel">
+                    <Border BorderThickness="2" BorderBrush="AliceBlue" Background="Aqua">
+                        <StackPanel Width="50" Height="80" Margin="1" >
+
+                            <StackPanel.Style>
+                                <Style>
+                                    <Setter Property="Control.Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding Path=Index}" Value="0" />
+                                                <Condition Binding="{Binding Path=UserType}" Value="{x:Static enum:UserType.Dealer}" />
+                                                <!--<Condition Binding="{Binding Started, RelativeSource={RelativeSource AncestorLevel=}}" Value="True" />-->
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Control.Visibility" Value="Hidden" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            
+                            <TextBlock HorizontalAlignment="Left"
+                                Text="{Binding Card.Number, Converter={StaticResource NumberToSuitDisplayConverter}}" />
+                            <Image HorizontalAlignment="Center"
+                                Source="{Binding Card.CardType, Converter={StaticResource SuitToImageConverter}}" />
+                            <TextBlock HorizontalAlignment="Right"
+                                       Text="{Binding Card.Number, Converter={StaticResource NumberToSuitDisplayConverter}}">
+                                <TextBlock.LayoutTransform>
+                                    <RotateTransform Angle="180" />
+                                </TextBlock.LayoutTransform>
+                            </TextBlock>
+
+                        </StackPanel>
+                    </Border>
                 </DataTemplate>
                 <ItemsPanelTemplate x:Key="ListBoxItemsPanelTemplate">
                     <StackPanel Orientation="Horizontal" />
                 </ItemsPanelTemplate>
+
+                <Style x:Key="HandStyle" TargetType="ListBox">
+                    <Setter Property="HorizontalAlignment" Value="Left"/>
+                    <Setter Property="Height" Value="90" />
+                </Style>
             </ResourceDictionary>
         </Grid.Resources>
         <StackPanel>
             <DockPanel HorizontalAlignment="Right">
                 <Label>Score:</Label>
-                <TextBox Width="100" Text="{Binding Score}" />
+                <Label Width="100" Content="{Binding Score}" />
             </DockPanel>
             <DockPanel HorizontalAlignment="Center">
                 <Label>Deck:</Label>
@@ -46,30 +74,48 @@
             <!--Dealer Area-->
             <Label Foreground="Blue" Margin="5,5,5,0">Dealer</Label>
             <DockPanel>
-                <ListBox HorizontalAlignment="Left"
-                    ItemsSource="{Binding CardsDealer}" ItemTemplate="{StaticResource ListBoxDataTemplate}" ItemsPanel="{StaticResource ListBoxItemsPanelTemplate}" />
+                <ListBox Style="{StaticResource HandStyle}"
+                         ItemsSource="{Binding CardsDealer}" 
+                         ItemTemplate="{StaticResource ListBoxDataTemplate}" 
+                         ItemsPanel="{StaticResource ListBoxItemsPanelTemplate}" />
                 <Label HorizontalAlignment="Right"
-                       Content="{Binding Total_Dealer}" Visibility="Visible" />
+                       Content="{Binding Total_Dealer}" 
+                       Visibility="{Binding Started, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}" />
             </DockPanel>
 
             <!--Player Area-->
             <Label Foreground="Blue" Margin="5,5,5,0">Player</Label>
             <DockPanel>
-                <ListBox HorizontalAlignment="Left"
-                    ItemsSource="{Binding CardsPlayer}" ItemTemplate="{StaticResource ListBoxDataTemplate}" ItemsPanel="{StaticResource ListBoxItemsPanelTemplate}" />
+                <ListBox Style="{StaticResource HandStyle}"
+                         ItemsSource="{Binding CardsPlayer}" 
+                         ItemTemplate="{StaticResource ListBoxDataTemplate}" 
+                         ItemsPanel="{StaticResource ListBoxItemsPanelTemplate}" />
                 <Label HorizontalAlignment="Right"
-                    Content="{Binding Total_Player}" Visibility="{Binding Started, Converter={StaticResource BoolToVisibilityConverter}}" />
+                       Content="{Binding Total_Player}" 
+                       Visibility="{Binding Started, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}" />
             </DockPanel>
 
+            <!--Start Button-->
             <Button Command="{Binding StartCommand}" Width="200"
                     IsEnabled="{Binding Started, Converter={StaticResource InverseBoolConverter}}">
                 Start
             </Button>
+            
+            <!--Operate Button-->
             <DockPanel HorizontalAlignment="Right">
                 <Button Command="{Binding HitCommand}" Width="100" IsEnabled="{Binding Started}">Hit</Button>
                 <Button Command="{Binding StayCommand}" Width="100" IsEnabled="{Binding Started}">Stay</Button>
             </DockPanel>
-            <Button Command="{Binding ResetCommand}" Margin="5">Reset</Button>
+            
+            <!--Reset Button-->
+            <Button Command="{Binding ResetCommand}" 
+                    HorizontalAlignment="Right"
+                    Margin="5">Reset</Button>
+
+            <TextBlock Height="100" Width="300" 
+                       Text="{Binding Result}" 
+                       TextAlignment="Center"
+                       FontSize="40" Foreground="Black" />
         </StackPanel>
     </Grid>
 </Window>
