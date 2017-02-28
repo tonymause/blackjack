@@ -7,6 +7,7 @@
         xmlns:model="clr-namespace:BlackJack.Model;assembly=BlackJack.Model"
         xmlns:cv="clr-namespace:BlackJack.ViewModel.Converter;assembly=BlackJack.ViewModel"
         xmlns:enum="clr-namespace:BlackJack.Model.Enum;assembly=BlackJack.Model"
+        xmlns:viewModel="clr-namespace:BlackJack.ViewModel;assembly=BlackJack.ViewModel"
         mc:Ignorable="d"
         Title="MainWindow">
     <Grid>
@@ -16,12 +17,19 @@
                 <cv:NumberToSuitDisplayConverter x:Key="NumberToSuitDisplayConverter" />
                 <cv:SuitToImageConverter x:Key="SuitToImageConverter" />
                 <cv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+                <cv:MultipleConverter x:Key="MultipleConverter" />
 
                 <DataTemplate x:Key="ListBoxDataTemplate" DataType="model:BlackJackModel">
                     <Border BorderThickness="2" BorderBrush="AliceBlue" Background="Aqua">
                         <StackPanel Width="50" Height="80" Margin="1" >
+                            <StackPanel.Visibility>
+                                <MultiBinding Converter="{StaticResource MultipleConverter}">
+                                    <Binding />
+                                    <Binding Path="DataContext.(viewModel:BlackJackViewModel.Started)" RelativeSource="{RelativeSource AncestorType={x:Type Window}}"/>
+                                </MultiBinding>
+                            </StackPanel.Visibility>
 
-                            <StackPanel.Style>
+                            <!--<StackPanel.Style>
                                 <Style>
                                     <Setter Property="Control.Visibility" Value="Visible" />
                                     <Style.Triggers>
@@ -29,20 +37,19 @@
                                             <MultiDataTrigger.Conditions>
                                                 <Condition Binding="{Binding Path=Index}" Value="0" />
                                                 <Condition Binding="{Binding Path=UserType}" Value="{x:Static enum:UserType.Dealer}" />
-                                                <!--<Condition Binding="{Binding Started, RelativeSource={RelativeSource AncestorLevel=}}" Value="True" />-->
+                                                <Condition Binding="{Binding DataContext.Started, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" Value="True" />
                                             </MultiDataTrigger.Conditions>
                                             <Setter Property="Control.Visibility" Value="Hidden" />
                                         </MultiDataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </StackPanel.Style>
+                            </StackPanel.Style>-->
                             
-                            <TextBlock HorizontalAlignment="Left"
+                            <TextBlock Name="left" HorizontalAlignment="Left"
                                 Text="{Binding Card.Number, Converter={StaticResource NumberToSuitDisplayConverter}}" />
                             <Image HorizontalAlignment="Center"
                                 Source="{Binding Card.CardType, Converter={StaticResource SuitToImageConverter}}" />
-                            <TextBlock HorizontalAlignment="Right"
-                                       Text="{Binding Card.Number, Converter={StaticResource NumberToSuitDisplayConverter}}">
+                            <TextBlock HorizontalAlignment="Right" Text="{Binding ElementName=left,Path=Text}" >
                                 <TextBlock.LayoutTransform>
                                     <RotateTransform Angle="180" />
                                 </TextBlock.LayoutTransform>
@@ -62,12 +69,22 @@
             </ResourceDictionary>
         </Grid.Resources>
         <StackPanel>
-            <DockPanel HorizontalAlignment="Right">
-                <Label>Score:</Label>
-                <Label Width="100" Content="{Binding Score}" />
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                    <Label Content="Decks:" />
+                    <ComboBox ItemsSource="{Binding DecksList}"
+                              DisplayMemberPath=""
+                              SelectedItem="{Binding Decks}"
+                              SelectedValue=""
+                              SelectedValuePath=""
+                              IsEnabled="{Binding InGame, Converter={StaticResource InverseBoolConverter}}" /></StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Label>Score:</Label>
+                    <Label HorizontalAlignment="Right" Width="100" Content="{Binding Score}" />
+                </StackPanel>
             </DockPanel>
             <DockPanel HorizontalAlignment="Center">
-                <Label>Deck:</Label>
+                <Label>Cards on Deck:</Label>
                 <Label Content="{Binding DockerCount}" />
             </DockPanel>
 
@@ -119,6 +136,10 @@
         </StackPanel>
     </Grid>
 </Window>
+
+
+
+
 
 
 

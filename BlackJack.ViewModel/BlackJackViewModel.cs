@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -26,16 +27,19 @@ namespace BlackJack.ViewModel
 
         private BlackJackModel _model;
         private readonly Random _random = new Random();
-
+        
+        private int _decks;
         private int _score;
         private string _result;
         private int _dockerCount;
+        private bool _inGame;
         private bool _started;
 
-        private int _total_dealer = 0;
-        private int _total_player = 0;
+        private int _total_dealer;
+        private int _total_player;
 
         private ObservableCollection<CardEntity> _cardsOnDeck;
+        private ObservableCollection<CardEntity> _cardsOffDeck;
 
         private ObservableCollection<BlackJackModel> _cardsPlayer;
         private ObservableCollection<BlackJackModel> _cardsDealer;
@@ -54,27 +58,30 @@ namespace BlackJack.ViewModel
             CardsPlayer = new ObservableCollection<BlackJackModel>();
             CardsPlayer.CollectionChanged += CardsPlayer_CollectionChanged;
 
+            DecksList = new ObservableCollection<int> { 1, 2, 3, 4, 5 };
+
+            // Deck
+            _decks = 1;
+
             Init();
-        }
-
-        private void CardsPlayer_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            Total_Player = CalculateCardsTotalValue(CardsPlayer);
-        }
-
-        private void CardsDealer_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            Total_Dealer = CalculateCardsTotalValue(CardsDealer);
-        }
-
-        private void CardsOnDeck_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            DockerCount = CardsOnDeck.Count;
         }
 
         #endregion
 
         #region Property
+
+        public int Decks
+        {
+            get { return _decks; }
+            set
+            {
+                _decks = value;
+                ResetDeck();
+                OnPropertyChanged();
+            }
+        }
+
+        public ObservableCollection<int> DecksList { get; private set; }
 
         /// <summary>
         /// Player Score displayed at UI
@@ -130,6 +137,16 @@ namespace BlackJack.ViewModel
             set
             {
                 _dockerCount = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool InGame
+        {
+            get { return _inGame; }
+            set
+            {
+                _inGame = value;
                 OnPropertyChanged();
             }
         }
@@ -191,18 +208,6 @@ namespace BlackJack.ViewModel
             }
         }
 
-
-        // ReSharper disable once MemberCanBePrivate.Global
-        public BlackJackModel Model
-        {
-            get { return _model; }
-            set
-            {
-                _model = value;
-                OnPropertyChanged();
-            }
-        }
-
         #endregion
 
         #region ICommand
@@ -216,6 +221,21 @@ namespace BlackJack.ViewModel
 
         #region Private Method
 
+        private void CardsPlayer_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            Total_Player = CalculateCardsTotalValue(CardsPlayer);
+        }
+
+        private void CardsDealer_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            Total_Dealer = CalculateCardsTotalValue(CardsDealer);
+        }
+
+        private void CardsOnDeck_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            DockerCount = CardsOnDeck.Count;
+        }
+
         private void Reset()
         {
             Init();
@@ -226,7 +246,7 @@ namespace BlackJack.ViewModel
         /// </summary>
         private void Hit()
         {
-            Dispatch(CardsPlayer, UserType.Player);
+            Dispatch(UserType.Player);
 
             // Calculate total
             Total_Player = CalculateCardsTotalValue(CardsPlayer);
@@ -251,7 +271,7 @@ namespace BlackJack.ViewModel
             else
             {
                 while (CalculateCardsTotalValue(CardsDealer) <= DEALER_TOTAL_MAX)
-                    Dispatch(CardsDealer, UserType.Dealer);
+                    Dispatch(UserType.Dealer);
 
                 Total_Dealer = CalculateCardsTotalValue(CardsDealer);
 
@@ -301,10 +321,6 @@ namespace BlackJack.ViewModel
         private void PrepareNewMatch()
         {
             Started = false;
-
-            // Check remainding suits count less than SUIT_COUNT_MIN
-            if (CardsOnDeck.Count < SUIT_COUNT_MIN)
-                ResetDeck();
         }
 
 
@@ -332,8 +348,18 @@ namespace BlackJack.ViewModel
         /// </summary>
         private void Start()
         {
+            InGame = true;
             Started = true;
             Result = string.Empty;
+
+            foreach (var card in CardsPlayer)
+            {
+                _cardsOffDeck.Add(card.Card);
+            }
+            foreach (var card in CardsDealer)
+            {
+                _cardsOffDeck.Add(card.Card);
+            }
 
             Total_Dealer = 0;
             Total_Player = 0;
@@ -344,31 +370,43 @@ namespace BlackJack.ViewModel
             // For dealer, the first card should be hidden
             for (var i = 0; i < CNT_FIRST_DIS; i++)
             {
-                Dispatch(CardsDealer, UserType.Dealer);
-                Dispatch(CardsPlayer, UserType.Player);
+                Dispatch(UserType.Dealer);
+                Dispatch(UserType.Player);
             }
         }
 
-        private void Dispatch(ICollection<BlackJackModel> list, UserType userType)
+        private void Dispatch(UserType userType)
         {
+            // Option1: Reshuffle the cards whenever there are fewer than fifteen cards remaining in the deck.
+            if (CardsOnDeck.Count < SUIT_COUNT_MIN)
+                ShuffleDeck();
+
             var i = _random.Next(0, CardsOnDeck.Count);
             var card = CardsOnDeck[i];
 
             CardsOnDeck.Remove(card);
-            list.Add(new BlackJackModel(list.Count, card, userType));
+            if (userType == UserType.Dealer)
+                CardsDealer.Add(new BlackJackModel(CardsDealer.Count, card, userType));
+            else
+                CardsPlayer.Add(new BlackJackModel(CardsPlayer.Count, card, userType));
         }
 
+        /// <summary>
+        /// Application init or reset button clicked
+        /// </summary>
         private void Init()
         {
             // Player score reset
             Score = 0;
 
-            // Game status reset
+            InGame = false;
             Started = false;
             Result = string.Empty;
             
             CardsDealer.Clear();
             CardsPlayer.Clear();
+
+            _cardsOffDeck = new ObservableCollection<CardEntity>();
 
             ResetDeck();
         }
@@ -376,13 +414,19 @@ namespace BlackJack.ViewModel
         private void ResetDeck()
         {
             CardsOnDeck.Clear();
-            foreach (CardType type in Enum.GetValues(typeof(CardType)))
-            {
-                for (var i = 0; i < 13; i++)
+            for (var j = 0; j < Decks; j++)
+                foreach (CardType type in Enum.GetValues(typeof(CardType)))
                 {
-                    CardsOnDeck.Add(new CardEntity(type, i + 1));
+                    for (var i = 0; i < 13; i++)
+                    {
+                        CardsOnDeck.Add(new CardEntity(type, i + 1));
+                    }
                 }
-            }
+        }
+
+        private void ShuffleDeck()
+        {
+            CardsOnDeck = CardsOnDeck.Union(_cardsOffDeck).ToObservableCollection();
         }
 
         #endregion
